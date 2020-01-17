@@ -48,6 +48,7 @@
 
                 Payment(CardCode, FDeposito, Pago, FDeposito1, Pago1, FDeposito2, Pago2)
                 ORINA(DocNum)
+                OBNK(CardCode, Banco, FDeposito, FormaPago, Pago, Banco1, FDeposito1, FormaPago1, Pago1, Banco2, FDeposito2, FormaPago2, Pago2)
 
             Else
 
@@ -62,6 +63,7 @@
         End Try
 
     End Function
+
 
     Public Function Payment(ByVal CardCode As String, ByVal FDeposito As String, ByVal Pago As String, ByVal FDeposito1 As String, ByVal Pago1 As String, ByVal FDeposito2 As String, ByVal Pago2 As String)
 
@@ -102,6 +104,7 @@
         End Try
 
     End Function
+
 
     Public Function ORINA(ByVal DocNum As String)
 
@@ -181,6 +184,13 @@
             cSBOApplication.MessageBox("Error al Crear Nota de Crédito: " & ex.Message)
 
         End Try
+
+    End Function
+
+
+    Public Function OBNK(ByVal CardCode As String, ByVal Banco As String, ByVal FDeposito As String, ByVal FormaPago As String, ByVal Pago As String, ByVal Banco1 As String, ByVal FDeposito1 As String, ByVal FormaPago1 As String, ByVal Pago1 As String, ByVal Banco2 As String, ByVal FDeposito2 As String, ByVal FormaPago2 As String, ByVal Pago2 As String)
+
+
 
     End Function
 
