@@ -190,7 +190,44 @@
 
     Public Function OBNK(ByVal CardCode As String, ByVal Banco As String, ByVal FDeposito As String, ByVal FormaPago As String, ByVal Pago As String, ByVal Banco1 As String, ByVal FDeposito1 As String, ByVal FormaPago1 As String, ByVal Pago1 As String, ByVal Banco2 As String, ByVal FDeposito2 As String, ByVal FormaPago2 As String, ByVal Pago2 As String)
 
+        Dim stQueryH As String
+        Dim oRecSetH As SAPbobsCOM.Recordset
+        Dim oCuenta As SAPbobsCOM.BankPages
+        Dim Account, Sequence As String
 
+        oRecSetH = cSBOCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset)
+
+        Try
+
+            stQueryH = "Select ""AcctCode"",""Sequence"" From OBNK Where (""CardCode"" ='" & CardCode & "') and (""AcctCode""='" & Banco & "' or ""AcctCode""='" & Banco1 & "' or ""AcctCode""='" & Banco2 & "') and (""DueDate""='" & FDeposito & "' or ""DueDate""='" & FDeposito1 & "' or ""DueDate""='" & FDeposito2 & "') and (""Ref""='" & FormaPago & "' or ""Ref""='" & FormaPago1 & "' or ""Ref""='" & FormaPago2 & "') and (""CredAmnt""=" & Pago & " or ""CredAmnt""=" & Pago1 & " or ""CredAmnt""=" & Pago2 & ")"
+            oRecSetH.DoQuery(stQueryH)
+
+            If oRecSetH.RecordCount > 0 Then
+
+                oCuenta = cSBOCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.oBankPages)
+                oRecSetH.MoveFirst()
+
+                For i = 0 To oRecSetH.RecordCount - 1
+
+                    Account = oRecSetH.Fields.Item("AcctCode").Value
+                    Sequence = oRecSetH.Fields.Item("Sequence").Value
+
+                    oCuenta.GetByKey(Account, Sequence)
+                    oCuenta.CardCode = ""
+                    oCuenta.CardName = ""
+                    oCuenta.Update()
+
+                    oRecSetH.MoveNext()
+
+                Next
+
+            End If
+
+        Catch ex As Exception
+
+            cSBOApplication.MessageBox("Error al limpiar el extracto bancario: " & ex.Message)
+
+        End Try
 
     End Function
 
