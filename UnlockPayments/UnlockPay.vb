@@ -20,7 +20,10 @@
 
         Dim stQueryH As String
         Dim oRecSetH As SAPbobsCOM.Recordset
-        Dim CardCode, Banco, FDeposito, FormaPago, Pago, Banco1, FDeposito1, FormaPago1, Pago1, Banco2, FDeposito2, FormaPago2, Pago2 As String
+        Dim CardCode, Banco, FormaPago, Banco1, FormaPago1, Banco2, FormaPago2, FDepo, FDepo1, FDepo2 As String
+        Dim FDeposito, FDeposito1, FDeposito2 As Date
+        Dim Pago, Pago1, Pago2 As Double
+        Dim ContP, ContORIN, ContOBNK As Integer
 
         oRecSetH = cSBOCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset)
 
@@ -45,14 +48,23 @@
                 FDeposito2 = oRecSetH.Fields.Item("U_CSM_FDEPOSITO2").Value
                 FormaPago2 = oRecSetH.Fields.Item("U_CSM_FORMAPAGO2").Value
                 Pago2 = oRecSetH.Fields.Item("U_CSM_IMPORTEPAGADO2").Value
+                FDepo = Year(FDeposito).ToString + "-" + Month(FDeposito).ToString + "-" + Day(FDeposito).ToString
+                FDepo1 = Year(FDeposito1).ToString + "-" + Month(FDeposito1).ToString + "-" + Day(FDeposito1).ToString
+                FDepo2 = Year(FDeposito2).ToString + "-" + Month(FDeposito2).ToString + "-" + Day(FDeposito2).ToString
 
-                Payment(CardCode, FDeposito, Pago, FDeposito1, Pago1, FDeposito2, Pago2)
-                ORINA(DocNum)
-                OBNK(CardCode, Banco, FDeposito, FormaPago, Pago, Banco1, FDeposito1, FormaPago1, Pago1, Banco2, FDeposito2, FormaPago2, Pago2)
+                ContP = Payment(CardCode, FDepo, Pago, FDepo1, Pago1, FDepo2, Pago2)
+                ContORIN = ORINA(DocNum)
+                ContOBNK = OBNK(CardCode, Banco, FDepo, FormaPago, Pago, Banco1, FDepo1, FormaPago1, Pago1, Banco2, FDepo2, FormaPago2, Pago2)
+
+                If ContP > 0 And ContORIN > 0 And ContOBNK > 0 Then
+
+                    cSBOApplication.MessageBox("Borrado del pago exitoso")
+
+                End If
 
             Else
 
-                cSBOApplication.MessageBox("¡¡¡Esta Factura no es valida para cancelar sus pagos!!!")
+                    cSBOApplication.MessageBox("¡¡¡Esta Factura no es valida para cancelar sus pagos!!!")
 
             End If
 
@@ -65,18 +77,20 @@
     End Function
 
 
-    Public Function Payment(ByVal CardCode As String, ByVal FDeposito As String, ByVal Pago As String, ByVal FDeposito1 As String, ByVal Pago1 As String, ByVal FDeposito2 As String, ByVal Pago2 As String)
+    Public Function Payment(ByVal CardCode As String, ByVal FDeposito As String, ByVal Pago As Double, ByVal FDeposito1 As String, ByVal Pago1 As Double, ByVal FDeposito2 As String, ByVal Pago2 As Double)
 
         Dim stQueryH As String
         Dim oRecSetH As SAPbobsCOM.Recordset
         Dim DocEntry As String
         Dim vPay As SAPbobsCOM.Payments
+        Dim contador As Integer
 
         oRecSetH = cSBOCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset)
+        contador = 0
 
         Try
 
-            stQueryH = "Select ""DocEntry"" from ORCT where ""CardCode""='" & CardCode & "' and (""DocDate""='" & FDeposito & "' or ""DocDate""='" & FDeposito1 & "' or ""DocDate""='" & FDeposito2 & "') and (""DocTotal""=" & Pago & " or ""DocTotal""=" & Pago1 & " or ""DocTotal""=" & Pago2 & ")"
+            stQueryH = "Select ""DocEntry"" from ORCT where ""Canceled""='N' and ""CardCode""='" & CardCode & "' and (""DocDate""='" & FDeposito & "' or ""DocDate""='" & FDeposito1 & "' or ""DocDate""='" & FDeposito2 & "') and (""DocTotal""=" & Pago & " or ""DocTotal""=" & Pago1 & " or ""DocTotal""=" & Pago2 & ")"
             oRecSetH.DoQuery(stQueryH)
 
             If oRecSetH.RecordCount > 0 Then
@@ -89,13 +103,20 @@
 
                     DocEntry = oRecSetH.Fields.Item("DocEntry").Value
                     vPay.GetByKey(DocEntry)
-                    vPay.Cancel()
+
+                    If vPay.Cancel() = 0 Then
+
+                        contador = contador + 1
+
+                    End If
 
                     oRecSetH.MoveNext()
 
                 Next
 
             End If
+
+            Return contador
 
         Catch ex As Exception
 
@@ -114,9 +135,12 @@
         Dim DocEntry, DocCur As String
         Dim llError As Long
         Dim lsError As String
+        Dim contador As Integer
 
         oRecSetH = cSBOCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset)
         oRecSetH2 = cSBOCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset)
+
+        contador = 0
 
         Try
 
@@ -129,19 +153,21 @@
                 oRecSetH.MoveFirst()
 
                 DocEntry = oRecSetH.Fields.Item("DocEntry").Value
-                DocCur = oRecSetH2.Fields.Item("DocCur").Value
+                DocCur = oRecSetH.Fields.Item("DocCur").Value
 
-                oORINA.Series = "NC"
+                oORINA.Series = 6
                 oORINA.CardCode = oRecSetH.Fields.Item("CardCode").Value
-                oORINA.DocDate = Now.Date
-                oORINA.DocDueDate = Now.Date
+                oORINA.DocDate = Year(Now.Date).ToString + "-" + Month(Now.Date).ToString + "-" + Day(Now.Date).ToString
+                oORINA.DocDueDate = Year(Now.Date).ToString + "-" + Month(Now.Date).ToString + "-" + Day(Now.Date).ToString
                 oORINA.DocTotal = oRecSetH.Fields.Item("DocTotal").Value
                 oORINA.SalesPersonCode = oRecSetH.Fields.Item("SlpCode").Value
                 oORINA.DocumentsOwner = 38
                 oORINA.Indicator = oRecSetH.Fields.Item("SlpCode").Value
                 oORINA.UserFields.Fields.Item("U_WhsCodeC").Value = oRecSetH.Fields.Item("Project").Value
+                oORINA.UserFields.Fields.Item("U_B1SYS_MainUsage").Value = "G02"
+                oORINA.EDocGenerationType = 0
 
-                stQueryH2 = "Select ""ObjType"",""LineNum"",""ItemCode"",""Price"",""Quantity"",""TaxCode"",""WhsCode"",""Project"",""DiscPrcnt"" from INV1 where ""DocEntry""=" & DocEntry
+                stQueryH2 = "Select T0.""ObjType"",T0.""LineNum"",T0.""ItemCode"",T0.""Price"",T0.""Quantity"",T0.""TaxCode"",T0.""WhsCode"",T0.""Project"",T0.""DiscPrcnt"",T1.""BatchNum"" from INV1 T0 Left Outer Join IBT1 T1 on T1.""BaseType""=T0.""ObjType"" and T1.""BaseEntry""=T0.""DocEntry"" And T1.""BaseLinNum""=T0.""LineNum"" And T1.""ItemCode""=T0.""ItemCode"" where ""DocEntry""=" & DocEntry
                 oRecSetH2.DoQuery(stQueryH2)
 
                 If oRecSetH2.RecordCount > 0 Then
@@ -161,6 +187,9 @@
                         oORINA.Lines.ProjectCode = oRecSetH2.Fields.Item("Project").Value
                         oORINA.Lines.DiscountPercent = oRecSetH2.Fields.Item("DiscPrcnt").Value
                         oORINA.Lines.Currency = DocCur
+                        oORINA.Lines.BatchNumbers.BatchNumber = oRecSetH2.Fields.Item("BatchNum").Value
+                        oORINA.Lines.BatchNumbers.Quantity = oRecSetH2.Fields.Item("Quantity").Value
+                        oORINA.Lines.BatchNumbers.Notes = oRecSetH2.Fields.Item("BatchNum").Value
 
                         oORINA.Lines.Add()
 
@@ -175,9 +204,15 @@
                     cSBOCompany.GetLastError(llError, lsError)
                     Err.Raise(-1, 1, lsError)
 
+                Else
+
+                    contador = contador + 1
+
                 End If
 
             End If
+
+            Return contador
 
         Catch ex As Exception
 
@@ -188,18 +223,24 @@
     End Function
 
 
-    Public Function OBNK(ByVal CardCode As String, ByVal Banco As String, ByVal FDeposito As String, ByVal FormaPago As String, ByVal Pago As String, ByVal Banco1 As String, ByVal FDeposito1 As String, ByVal FormaPago1 As String, ByVal Pago1 As String, ByVal Banco2 As String, ByVal FDeposito2 As String, ByVal FormaPago2 As String, ByVal Pago2 As String)
+    Public Function OBNK(ByVal CardCode As String, ByVal Banco As String, ByVal FDeposito As String, ByVal FormaPago As String, ByVal Pago As Double, ByVal Banco1 As String, ByVal FDeposito1 As String, ByVal FormaPago1 As String, ByVal Pago1 As Double, ByVal Banco2 As String, ByVal FDeposito2 As String, ByVal FormaPago2 As String, ByVal Pago2 As Double)
 
         Dim stQueryH As String
         Dim oRecSetH As SAPbobsCOM.Recordset
         Dim oCuenta As SAPbobsCOM.BankPages
-        Dim Account, Sequence As String
+        Dim Account, Sequence, Ref, RDate As String
+        Dim DebAmount, CredAmnt As Double
+        Dim oDueDate As Date
+        Dim llError As Long
+        Dim lsError As String
+        Dim contador As Integer
 
         oRecSetH = cSBOCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset)
+        contador = 0
 
         Try
 
-            stQueryH = "Select ""AcctCode"",""Sequence"" From OBNK Where (""CardCode"" ='" & CardCode & "') and (""AcctCode""='" & Banco & "' or ""AcctCode""='" & Banco1 & "' or ""AcctCode""='" & Banco2 & "') and (""DueDate""='" & FDeposito & "' or ""DueDate""='" & FDeposito1 & "' or ""DueDate""='" & FDeposito2 & "') and (""Ref""='" & FormaPago & "' or ""Ref""='" & FormaPago1 & "' or ""Ref""='" & FormaPago2 & "') and (""CredAmnt""=" & Pago & " or ""CredAmnt""=" & Pago1 & " or ""CredAmnt""=" & Pago2 & ")"
+            stQueryH = "Select ""AcctCode"",""Sequence"",""Ref"",""DueDate"",""DebAmount"",""CredAmnt"" From OBNK Where (""CardCode"" ='" & CardCode & "') and (""AcctCode""='" & Banco & "' or ""AcctCode""='" & Banco1 & "' or ""AcctCode""='" & Banco2 & "') and (""DueDate""='" & FDeposito & "' or ""DueDate""='" & FDeposito1 & "' or ""DueDate""='" & FDeposito2 & "') and (""Ref""='" & FormaPago & "' or ""Ref""='" & FormaPago1 & "' or ""Ref""='" & FormaPago2 & "') and (""CredAmnt""=" & Pago & " or ""CredAmnt""=" & Pago1 & " or ""CredAmnt""=" & Pago2 & ")"
             oRecSetH.DoQuery(stQueryH)
 
             If oRecSetH.RecordCount > 0 Then
@@ -211,17 +252,36 @@
 
                     Account = oRecSetH.Fields.Item("AcctCode").Value
                     Sequence = oRecSetH.Fields.Item("Sequence").Value
+                    Ref = oRecSetH.Fields.Item("Ref").Value
+                    oDueDate = oRecSetH.Fields.Item("DueDate").Value
+                    DebAmount = oRecSetH.Fields.Item("DebAmount").Value
+                    CredAmnt = oRecSetH.Fields.Item("CredAmnt").Value
+                    RDate = Year(oDueDate).ToString + "-" + Month(oDueDate).ToString + "-" + Day(oDueDate).ToString
 
                     oCuenta.GetByKey(Account, Sequence)
                     oCuenta.CardCode = ""
                     oCuenta.CardName = ""
-                    oCuenta.Update()
+                    oCuenta.ExternalCode = ""
+
+                    If oCuenta.Update() = 0 Then
+
+                        InsertLog(Account, Ref, RDate, DebAmount, CredAmnt)
+                        contador = contador + 1
+
+                    Else
+
+                        cSBOCompany.GetLastError(llError, lsError)
+                        Err.Raise(-1, 1, lsError)
+
+                    End If
 
                     oRecSetH.MoveNext()
 
                 Next
 
             End If
+
+            Return contador
 
         Catch ex As Exception
 
@@ -230,5 +290,38 @@
         End Try
 
     End Function
+
+
+    Public Function InsertLog(ByVal Account As String, ByVal Ref As String, ByVal oDueDate As String, ByVal DebAmount As Double, ByVal CredAmnt As Double)
+
+        Dim stQueryH, stQueryH2 As String
+        Dim oRecSetH, oRecSetH2 As SAPbobsCOM.Recordset
+        Dim Code, CurrentDate, RDate As String
+
+        oRecSetH = cSBOCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset)
+        oRecSetH2 = cSBOCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset)
+
+        Try
+
+            CurrentDate = Now.Year.ToString + "-" + Now.Month.ToString + "-" + Now.Day.ToString
+
+            stQueryH = "Select case when length(count(""U_AcctCode"")+1)=1 then concat('00',TO_NVARCHAR(count(""U_AcctCode"")+1)) when length(count(""U_AcctCode"")+1)=2 then concat('0',TO_NVARCHAR(count(""U_AcctCode"")+1)) when length(count(""U_AcctCode"")+1)=3 then TO_NVARCHAR(count(""U_AcctCode"")+1) end as ""Codigo"" from ""@LOG_OBNK"" where ""U_AcctCode""=" & Account & " and ""U_DueDate""='" & oDueDate & "'"
+            oRecSetH.DoQuery(stQueryH)
+
+            RDate = Year(oDueDate).ToString + Month(oDueDate).ToString + Day(oDueDate).ToString
+
+            Code = RDate + Account.Substring(7, 2).ToString + oRecSetH.Fields.Item("Codigo").Value
+
+            stQueryH2 = "INSERT INTO ""@LOG_OBNK"" VALUES (" & Code & "," & Code & ",'" & oDueDate & "','" & CurrentDate & "','" & Ref & "',null,null,null,'" & Account & "','UnlockPay'," & DebAmount & "," & CredAmnt & ")"
+            oRecSetH2.DoQuery(stQueryH2)
+
+        Catch ex As Exception
+
+            cSBOApplication.MessageBox("Error al actualizar LOG_OBNK : " & ex.Message)
+
+        End Try
+
+    End Function
+
 
 End Class
