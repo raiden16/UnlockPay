@@ -20,16 +20,27 @@
 
         Dim stQueryH As String
         Dim oRecSetH As SAPbobsCOM.Recordset
-        Dim CardCode, Banco, FormaPago, Banco1, FormaPago1, Banco2, FormaPago2, FDepo, FDepo1, FDepo2 As String
-        Dim FDeposito, FDeposito1, FDeposito2 As Date
-        Dim Pago, Pago1, Pago2 As Double
+        Dim CardCode, Banco, FormaPago, Banco1, FormaPago1, Banco2, FormaPago2, Banco3, FormaPago3, Banco4, FormaPago4, FDepo, FDepo1, FDepo2, FDepo3, FDepo4, DocEntry As String
+        Dim FDeposito, FDeposito1, FDeposito2, FDeposito3, FDeposito4 As Date
+        Dim Pago, Pago1, Pago2, Pago3, Pago4 As Double
         Dim ContP, ContORIN, ContOBNK As Integer
 
         oRecSetH = cSBOCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset)
 
         Try
-            stQueryH = "Select ""CardCode"",""U_CSM_BANCO"",""U_CSM_FDEPOSITO"",""U_CSM_FORMAPAGO"",""U_CSM_IMPORTEPAGADO"", ""U_CSM_BANCO1"",""U_CSM_FDEPOSITO1"",""U_CSM_FORMAPAGO1"",""U_CSM_IMPORTEPAGADO1"", ""U_CSM_BANCO2"",""U_CSM_FDEPOSITO2"",""U_CSM_FORMAPAGO2"",""U_CSM_IMPORTEPAGADO2"" from OINV where (""DocNum""=" & DocNum & ") and (""U_CSM_FORMAPAGO""<>'SS' or ""U_CSM_FORMAPAGO1""<>'SS' or ""U_CSM_FORMAPAGO2""<>'SS')"
+            stQueryH = "Select ""DocEntry"",""CardCode"",
+                       ""U_CSM_BANCO"",""U_CSM_FDEPOSITO"",""U_CSM_FORMAPAGO"",""U_CSM_IMPORTEPAGADO"",
+                       ""U_CSM_BANCO1"",""U_CSM_FDEPOSITO1"",""U_CSM_FORMAPAGO1"",""U_CSM_IMPORTEPAGADO1"",
+                       ""U_CSM_BANCO2"",""U_CSM_FDEPOSITO2"",""U_CSM_FORMAPAGO2"",""U_CSM_IMPORTEPAGADO2"",
+                       ""U_CSM_BANCO4"",""U_CSM_FVOUCHER1"",'TPV' as ""TPV1"",""U_CSM_IMPORTEVOUCHER1"",
+                       ""U_CSM_BANCO5"",""U_CSM_FVOUCHER2"",'TPV' as ""TPV2"",""U_CSM_IMPORTEVOUCHER2""
+                       from OINV where (""DocNum""=" & DocNum & ")"
             oRecSetH.DoQuery(stQueryH)
+
+            DocEntry = oRecSetH.Fields.Item("DocEntry").Value
+            ContP = Payment(DocEntry)
+
+            ContORIN = ORINA(DocNum)
 
             If oRecSetH.RecordCount > 0 Then
 
@@ -48,23 +59,39 @@
                 FDeposito2 = oRecSetH.Fields.Item("U_CSM_FDEPOSITO2").Value
                 FormaPago2 = oRecSetH.Fields.Item("U_CSM_FORMAPAGO2").Value
                 Pago2 = oRecSetH.Fields.Item("U_CSM_IMPORTEPAGADO2").Value
+                Banco3 = oRecSetH.Fields.Item("U_CSM_BANCO4").Value
+                FDeposito3 = oRecSetH.Fields.Item("U_CSM_FVOUCHER1").Value
+                FormaPago3 = oRecSetH.Fields.Item("TPV1").Value
+                Pago3 = oRecSetH.Fields.Item("U_CSM_IMPORTEVOUCHER1").Value
+                Banco4 = oRecSetH.Fields.Item("U_CSM_BANCO5").Value
+                FDeposito4 = oRecSetH.Fields.Item("U_CSM_FVOUCHER2").Value
+                FormaPago4 = oRecSetH.Fields.Item("TPV2").Value
+                Pago4 = oRecSetH.Fields.Item("U_CSM_IMPORTEVOUCHER2").Value
                 FDepo = Year(FDeposito).ToString + "-" + Month(FDeposito).ToString + "-" + Day(FDeposito).ToString
                 FDepo1 = Year(FDeposito1).ToString + "-" + Month(FDeposito1).ToString + "-" + Day(FDeposito1).ToString
                 FDepo2 = Year(FDeposito2).ToString + "-" + Month(FDeposito2).ToString + "-" + Day(FDeposito2).ToString
+                FDepo3 = Year(FDeposito3).ToString + "-" + Month(FDeposito3).ToString + "-" + Day(FDeposito3).ToString
+                FDepo4 = Year(FDeposito4).ToString + "-" + Month(FDeposito4).ToString + "-" + Day(FDeposito4).ToString
 
-                ContP = Payment(CardCode, FDepo, Pago, FDepo1, Pago1, FDepo2, Pago2)
-                ContORIN = ORINA(DocNum)
-                ContOBNK = OBNK(CardCode, Banco, FDepo, FormaPago, Pago, Banco1, FDepo1, FormaPago1, Pago1, Banco2, FDepo2, FormaPago2, Pago2)
+                ContOBNK = OBNK(CardCode, Banco, FDepo, FormaPago, Pago, Banco1, FDepo1, FormaPago1, Pago1, Banco2, FDepo2, FormaPago2, Pago2, Banco3, FDepo3, FormaPago3, Pago3, Banco4, FDepo4, FormaPago4, Pago4)
 
-                If ContP > 0 And ContORIN > 0 And ContOBNK > 0 Then
+            End If
 
-                    cSBOApplication.MessageBox("Borrado del pago exitoso")
+            If ContP > 0 Then
 
-                End If
+                cSBOApplication.MessageBox("Cancelación de Pagos exitosa")
 
-            Else
+            End If
 
-                    cSBOApplication.MessageBox("¡¡¡Esta Factura no es valida para cancelar sus pagos!!!")
+            If ContORIN > 0 Then
+
+                cSBOApplication.MessageBox("Creación de NC exitosa")
+
+            End If
+
+            If ContOBNK > 0 Then
+
+                cSBOApplication.MessageBox("Liberación del Extracto Bancario exitosa")
 
             End If
 
@@ -77,12 +104,12 @@
     End Function
 
 
-    Public Function Payment(ByVal CardCode As String, ByVal FDeposito As String, ByVal Pago As Double, ByVal FDeposito1 As String, ByVal Pago1 As Double, ByVal FDeposito2 As String, ByVal Pago2 As Double)
+    Public Function Payment(ByVal DocEntry As String)
 
         Dim stQueryH As String
         Dim oRecSetH As SAPbobsCOM.Recordset
-        Dim DocEntry As String
         Dim vPay As SAPbobsCOM.Payments
+        Dim DocEntryP As String
         Dim contador As Integer
 
         oRecSetH = cSBOCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset)
@@ -90,7 +117,7 @@
 
         Try
 
-            stQueryH = "Select ""DocEntry"" from ORCT where ""Canceled""='N' and ""CardCode""='" & CardCode & "' and (""DocDate""='" & FDeposito & "' or ""DocDate""='" & FDeposito1 & "' or ""DocDate""='" & FDeposito2 & "') and (""DocTotal""=" & Pago & " or ""DocTotal""=" & Pago1 & " or ""DocTotal""=" & Pago2 & ")"
+            stQueryH = "Select T1.""DocEntry"" from RCT2 T0 inner join ORCT T1 on T1.""DocNum""=T0.""DocNum"" where T0.""DocEntry""=" & DocEntry & " and T0.""InvType""=13"
             oRecSetH.DoQuery(stQueryH)
 
             If oRecSetH.RecordCount > 0 Then
@@ -101,8 +128,8 @@
 
                     vPay = cSBOCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.oIncomingPayments)
 
-                    DocEntry = oRecSetH.Fields.Item("DocEntry").Value
-                    vPay.GetByKey(DocEntry)
+                    DocEntryP = oRecSetH.Fields.Item("DocEntry").Value
+                    vPay.GetByKey(DocEntryP)
 
                     If vPay.Cancel() = 0 Then
 
@@ -223,7 +250,7 @@
     End Function
 
 
-    Public Function OBNK(ByVal CardCode As String, ByVal Banco As String, ByVal FDeposito As String, ByVal FormaPago As String, ByVal Pago As Double, ByVal Banco1 As String, ByVal FDeposito1 As String, ByVal FormaPago1 As String, ByVal Pago1 As Double, ByVal Banco2 As String, ByVal FDeposito2 As String, ByVal FormaPago2 As String, ByVal Pago2 As Double)
+    Public Function OBNK(ByVal CardCode As String, ByVal Banco As String, ByVal FDeposito As String, ByVal FormaPago As String, ByVal Pago As Double, ByVal Banco1 As String, ByVal FDeposito1 As String, ByVal FormaPago1 As String, ByVal Pago1 As Double, ByVal Banco2 As String, ByVal FDeposito2 As String, ByVal FormaPago2 As String, ByVal Pago2 As Double, ByVal Banco3 As String, ByVal FDeposito3 As String, ByVal FormaPago3 As String, ByVal Pago3 As Double, ByVal Banco4 As String, ByVal FDeposito4 As String, ByVal FormaPago4 As String, ByVal Pago4 As Double)
 
         Dim stQueryH As String
         Dim oRecSetH As SAPbobsCOM.Recordset
@@ -240,7 +267,7 @@
 
         Try
 
-            stQueryH = "Select ""AcctCode"",""Sequence"",""Ref"",""DueDate"",""DebAmount"",""CredAmnt"" From OBNK Where (""CardCode"" ='" & CardCode & "') and (""AcctCode""='" & Banco & "' or ""AcctCode""='" & Banco1 & "' or ""AcctCode""='" & Banco2 & "') and (""DueDate""='" & FDeposito & "' or ""DueDate""='" & FDeposito1 & "' or ""DueDate""='" & FDeposito2 & "') and (""Ref""='" & FormaPago & "' or ""Ref""='" & FormaPago1 & "' or ""Ref""='" & FormaPago2 & "') and (""CredAmnt""=" & Pago & " or ""CredAmnt""=" & Pago1 & " or ""CredAmnt""=" & Pago2 & ")"
+            stQueryH = "Select ""AcctCode"",""Sequence"",""Ref"",""DueDate"",""DebAmount"",""CredAmnt"" From OBNK Where (""CardCode"" ='" & CardCode & "') and (""AcctCode""='" & Banco & "' or ""AcctCode""='" & Banco1 & "' or ""AcctCode""='" & Banco2 & "' or ""AcctCode""='" & Banco3 & "' or ""AcctCode""='" & Banco4 & "') and (""DueDate""='" & FDeposito & "' or ""DueDate""='" & FDeposito1 & "' or ""DueDate""='" & FDeposito2 & "' or ""DueDate""='" & FDeposito3 & "' or ""DueDate""='" & FDeposito4 & "') and (""Ref""='" & FormaPago & "' or ""Ref""='" & FormaPago1 & "' or ""Ref""='" & FormaPago2 & "' or ""Ref""='" & FormaPago3 & "' or ""Ref""='" & FormaPago4 & "') and (""CredAmnt""=" & Pago & " or ""CredAmnt""=" & Pago1 & " or ""CredAmnt""=" & Pago2 & " or ""CredAmnt""=" & Pago3 & " or ""CredAmnt""=" & Pago4 & ")"
             oRecSetH.DoQuery(stQueryH)
 
             If oRecSetH.RecordCount > 0 Then

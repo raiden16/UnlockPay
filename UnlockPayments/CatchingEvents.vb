@@ -130,6 +130,7 @@
         Dim coForm As SAPbouiCOM.Form
         Dim DocNum, stTabla As String
         Dim oDatatable As SAPbouiCOM.DBDataSource
+        Dim Respuesta As Integer
 
         Try
 
@@ -153,8 +154,14 @@
                             oDatatable = coForm.DataSources.DBDataSources.Item(stTabla)
                             DocNum = oDatatable.GetValue("DocNum", 0)
 
-                            oUnlockPay = New UnlockPay
-                            oUnlockPay.Valid(DocNum)
+                            Respuesta = SBOApplication.MessageBox("¿Deseas realizar la liberacion de pagos?", Btn1Caption:="Si", Btn2Caption:="No")
+
+                            If Respuesta = 1 Then
+
+                                oUnlockPay = New UnlockPay
+                                oUnlockPay.Valid(DocNum)
+
+                            End If
 
                     End Select
 
