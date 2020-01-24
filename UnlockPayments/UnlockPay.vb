@@ -39,12 +39,14 @@
             If ContP > 0 Then
 
                 cSBOApplication.MessageBox("Cancelación de Pagos exitosa")
+                ContP = 0
 
             End If
 
             If ContORIN > 0 Then
 
                 cSBOApplication.MessageBox("Creación de NC exitosa")
+                ContORIN = 0
 
             End If
 
