@@ -51,6 +51,7 @@
             If ContOBNK > 0 Then
 
                 cSBOApplication.MessageBox("Liberación del Extracto Bancario exitosa")
+                ContOBNK = 0
 
             End If
 
