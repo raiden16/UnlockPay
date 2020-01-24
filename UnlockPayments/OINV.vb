@@ -29,7 +29,7 @@
             loItem.Width = coForm.Items.Item(lsItemRef).Width + 40
             loItem.Height = coForm.Items.Item(lsItemRef).Height
             loButton = loItem.Specific
-            loButton.Caption = "Borrar Pago"
+            loButton.Caption = "NC Pagos"
 
         Catch ex As Exception
             cSBOApplication.MessageBox("DocumentoSBO. agregar elementos a la forma. " & ex.Message)
