@@ -121,7 +121,7 @@
         Dim stQueryH, stQueryH2, stQueryH3 As String
         Dim oRecSetH, oRecSetH2, oRecSetH3 As SAPbobsCOM.Recordset
         Dim oORINA As SAPbobsCOM.Documents
-        Dim DocEntry, DocCur As String
+        Dim DocEntry, DocCur, Folio As String
         Dim llError As Long
         Dim lsError As String
         Dim contador As Integer
@@ -134,7 +134,7 @@
 
         Try
 
-            stQueryH = "Select ""DocEntry"",""CardCode"",""SlpCode"",""Project"",""DocTotal"",""DocCur"" from OINV where ""DocNum""=" & DocNum
+            stQueryH = "Select T0.""DocEntry"",T0.""CardCode"",T0.""SlpCode"",T0.""Project"",T0.""DocTotal"",T0.""DocCur"",T1.""ReportID"" from OINV T0 Inner Join ECM2 T1 on T1.""SrcObjAbs""=T0.""DocEntry"" and T1.""SrcObjType""=T0.""ObjType"" where T0.""DocNum""=" & DocNum
             oRecSetH.DoQuery(stQueryH)
 
             If oRecSetH.RecordCount > 0 Then
@@ -155,74 +155,84 @@
                 oORINA.Indicator = oRecSetH.Fields.Item("SlpCode").Value
                 oORINA.UserFields.Fields.Item("U_WhsCodeC").Value = oRecSetH.Fields.Item("Project").Value
                 oORINA.UserFields.Fields.Item("U_B1SYS_MainUsage").Value = "G02"
-                oORINA.EDocGenerationType = 1
+                Folio = oRecSetH.Fields.Item("ReportID").Value
 
-                stQueryH2 = "Select T0.""ObjType"",T0.""LineNum"",T0.""ItemCode"",T0.""Price"",T0.""Quantity"",T0.""TaxCode"",T0.""WhsCode"",T0.""Project"",T0.""DiscPrcnt"" from INV1 T0 where ""DocEntry""=" & DocEntry & " order by T0.""LineNum"""
-                oRecSetH2.DoQuery(stQueryH2)
+                If Folio = Nothing Or Folio = "" Then
 
-                If oRecSetH2.RecordCount > 0 Then
-
-                    oRecSetH2.MoveFirst()
-
-                    For l = 0 To oRecSetH2.RecordCount - 1
-
-                        oORINA.Lines.ItemCode = oRecSetH2.Fields.Item("ItemCode").Value
-                        oORINA.Lines.BaseType = oRecSetH2.Fields.Item("ObjType").Value
-                        oORINA.Lines.BaseLine = oRecSetH2.Fields.Item("LineNum").Value
-                        oORINA.Lines.BaseEntry = DocEntry
-                        oORINA.Lines.Price = oRecSetH2.Fields.Item("Price").Value
-                        oORINA.Lines.Quantity = oRecSetH2.Fields.Item("Quantity").Value
-                        oORINA.Lines.TaxCode = oRecSetH2.Fields.Item("TaxCode").Value
-                        oORINA.Lines.WarehouseCode = oRecSetH2.Fields.Item("WhsCode").Value
-                        oORINA.Lines.ProjectCode = oRecSetH2.Fields.Item("Project").Value
-                        oORINA.Lines.DiscountPercent = oRecSetH2.Fields.Item("DiscPrcnt").Value
-                        oORINA.Lines.Currency = DocCur
-
-                        stQueryH3 = "Select T1.""BatchNum"",T1.""Quantity"" from IBT1 T1 where T1.""BaseType""=" & oRecSetH2.Fields.Item("ObjType").Value & " and T1.""BaseEntry""=" & DocEntry & " And T1.""BaseLinNum""=" & oRecSetH2.Fields.Item("LineNum").Value & " And T1.""ItemCode""='" & oRecSetH2.Fields.Item("ItemCode").Value & "'"
-                        oRecSetH3.DoQuery(stQueryH3)
-
-                        If oRecSetH3.RecordCount > 0 Then
-
-                            oRecSetH3.MoveFirst()
-
-                            For z = 0 To oRecSetH3.RecordCount - 1
-
-                                oORINA.Lines.BatchNumbers.BatchNumber = oRecSetH3.Fields.Item("BatchNum").Value
-                                oORINA.Lines.BatchNumbers.Quantity = oRecSetH3.Fields.Item("Quantity").Value
-                                oORINA.Lines.BatchNumbers.Notes = oRecSetH3.Fields.Item("BatchNum").Value
-                                oORINA.Lines.BatchNumbers.BaseLineNumber = oRecSetH2.Fields.Item("LineNum").Value
-
-                                oORINA.Lines.BatchNumbers.Add()
-
-                                oRecSetH3.MoveNext()
-
-                            Next
-
-                        End If
-
-                        oORINA.Lines.Add()
-
-                        oRecSetH2.MoveNext()
-
-                    Next
-
-                End If
-
-                If oORINA.Add() <> 0 Then
-
-                    cSBOCompany.GetLastError(llError, lsError)
-                    Err.Raise(-1, 1, lsError)
+                    oORINA.EDocGenerationType = 2
 
                 Else
 
-                    contador = contador + 1
-                    ContOBNK = OBNK(DocNum)
+                    oORINA.EDocGenerationType = 0
 
                 End If
 
-            End If
+                stQueryH2 = "Select T0.""ObjType"",T0.""LineNum"",T0.""ItemCode"",T0.""Price"",T0.""Quantity"",T0.""TaxCode"",T0.""WhsCode"",T0.""Project"",T0.""DiscPrcnt"" from INV1 T0 where ""DocEntry""=" & DocEntry & " order by T0.""LineNum"""
+                    oRecSetH2.DoQuery(stQueryH2)
 
-            Return contador
+                    If oRecSetH2.RecordCount > 0 Then
+
+                        oRecSetH2.MoveFirst()
+
+                        For l = 0 To oRecSetH2.RecordCount - 1
+
+                            oORINA.Lines.ItemCode = oRecSetH2.Fields.Item("ItemCode").Value
+                            oORINA.Lines.BaseType = oRecSetH2.Fields.Item("ObjType").Value
+                            oORINA.Lines.BaseLine = oRecSetH2.Fields.Item("LineNum").Value
+                            oORINA.Lines.BaseEntry = DocEntry
+                            oORINA.Lines.Price = oRecSetH2.Fields.Item("Price").Value
+                            oORINA.Lines.Quantity = oRecSetH2.Fields.Item("Quantity").Value
+                            oORINA.Lines.TaxCode = oRecSetH2.Fields.Item("TaxCode").Value
+                            oORINA.Lines.WarehouseCode = oRecSetH2.Fields.Item("WhsCode").Value
+                            oORINA.Lines.ProjectCode = oRecSetH2.Fields.Item("Project").Value
+                            oORINA.Lines.DiscountPercent = oRecSetH2.Fields.Item("DiscPrcnt").Value
+                            oORINA.Lines.Currency = DocCur
+
+                            stQueryH3 = "Select T1.""BatchNum"",T1.""Quantity"" from IBT1 T1 where T1.""BaseType""=" & oRecSetH2.Fields.Item("ObjType").Value & " and T1.""BaseEntry""=" & DocEntry & " And T1.""BaseLinNum""=" & oRecSetH2.Fields.Item("LineNum").Value & " And T1.""ItemCode""='" & oRecSetH2.Fields.Item("ItemCode").Value & "'"
+                            oRecSetH3.DoQuery(stQueryH3)
+
+                            If oRecSetH3.RecordCount > 0 Then
+
+                                oRecSetH3.MoveFirst()
+
+                                For z = 0 To oRecSetH3.RecordCount - 1
+
+                                    oORINA.Lines.BatchNumbers.BatchNumber = oRecSetH3.Fields.Item("BatchNum").Value
+                                    oORINA.Lines.BatchNumbers.Quantity = oRecSetH3.Fields.Item("Quantity").Value
+                                    oORINA.Lines.BatchNumbers.Notes = oRecSetH3.Fields.Item("BatchNum").Value
+                                    oORINA.Lines.BatchNumbers.BaseLineNumber = oRecSetH2.Fields.Item("LineNum").Value
+
+                                    oORINA.Lines.BatchNumbers.Add()
+
+                                    oRecSetH3.MoveNext()
+
+                                Next
+
+                            End If
+
+                            oORINA.Lines.Add()
+
+                            oRecSetH2.MoveNext()
+
+                        Next
+
+                    End If
+
+                    If oORINA.Add() <> 0 Then
+
+                        cSBOCompany.GetLastError(llError, lsError)
+                        Err.Raise(-1, 1, lsError)
+
+                    Else
+
+                        contador = contador + 1
+                        ContOBNK = OBNK(DocNum)
+
+                    End If
+
+                End If
+
+                Return contador
 
         Catch ex As Exception
 
